@@ -1,5 +1,6 @@
 package com.opspilot.invoice.repository;
 
+import com.opspilot.invoice.entity.ApprovalStatus;
 import com.opspilot.invoice.entity.Invoice;
 import com.opspilot.invoice.entity.ProcessingStatus;
 import org.springframework.data.domain.Page;
@@ -29,4 +30,5 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
 
     long countByOrganizationId(UUID organizationId);
     long countByOrganizationIdAndProcessingStatus(UUID organizationId, ProcessingStatus status);
+    long countByOrganizationIdAndApprovalStatus(UUID organizationId, ApprovalStatus approvalStatus);
 }

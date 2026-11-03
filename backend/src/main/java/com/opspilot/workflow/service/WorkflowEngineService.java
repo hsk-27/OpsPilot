@@ -240,6 +240,114 @@ public class WorkflowEngineService {
     }
 
     @Transactional
+    public WorkflowExecution startWorkflow(UUID workflowDefinitionId, UUID invoiceId) {
+        UUID orgId = TenantContext.getCurrentTenant();
+        Invoice invoice = invoiceRepository.findByIdAndOrganizationId(invoiceId, orgId)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice", invoiceId));
+
+        WorkflowDefinition def = definitionRepository.findByIdAndOrganizationId(workflowDefinitionId, orgId)
+                .orElseThrow(() -> new ResourceNotFoundException("WorkflowDefinition", workflowDefinitionId));
+
+        WorkflowVersion version = versionRepository.findByWorkflowDefinitionIdOrderByVersionNumberDesc(def.getId())
+                .stream().findFirst()
+                .orElseThrow(() -> new ApiException("No published workflow version found for workflow: " + def.getName(), HttpStatus.BAD_REQUEST, "NO_WORKFLOW_VERSION"));
+
+        WorkflowExecution execution = new WorkflowExecution(
+                orgId,
+                def.getId(),
+                version.getId(),
+                "INVOICE",
+                invoice.getId()
+        );
+        execution.setStatus(WorkflowExecution.Status.RUNNING);
+        execution.setStartedAt(Instant.now());
+        execution = executionRepository.save(execution);
+
+        invoice.setWorkflowExecutionId(execution.getId());
+        invoiceRepository.save(invoice);
+
+        try {
+            WorkflowGraph graph = objectMapper.readValue(version.getGraphDefinitionJson(), WorkflowGraph.class);
+            WorkflowNode startNode = graph.getNodes().stream()
+                    .filter(n -> n.getType() == NodeType.START)
+                    .findFirst()
+                    .orElseThrow(() -> new ApiException("Workflow has no START node", HttpStatus.INTERNAL_SERVER_ERROR, "CORRUPT_WORKFLOW_GRAPH"));
+
+            executeNodeStep(execution, graph, startNode, new HashMap<>());
+        } catch (Exception e) {
+            log.error("Failed to execute workflow: {}", e.getMessage(), e);
+            execution.setStatus(WorkflowExecution.Status.FAILED);
+            execution.setErrorMessage("Graph execution failed: " + e.getMessage());
+            executionRepository.save(execution);
+        }
+
+        return execution;
+    }
+
+    @Transactional
+    public WorkflowExecution retryExecution(UUID executionId) {
+        UUID orgId = TenantContext.getCurrentTenant();
+        WorkflowExecution execution = executionRepository.findByIdAndOrganizationId(executionId, orgId)
+                .orElseThrow(() -> new ResourceNotFoundException("WorkflowExecution", executionId));
+
+        if (execution.getStatus() != WorkflowExecution.Status.FAILED) {
+            throw new ApiException("Cannot retry an execution with status " + execution.getStatus() + ". Only FAILED executions can be retried.",
+                    HttpStatus.CONFLICT, "EXECUTION_NOT_FAILED");
+        }
+
+        WorkflowVersion version = versionRepository.findById(execution.getWorkflowVersionId())
+                .orElseThrow(() -> new ResourceNotFoundException("WorkflowVersion", execution.getWorkflowVersionId()));
+
+        try {
+            WorkflowGraph graph = objectMapper.readValue(version.getGraphDefinitionJson(), WorkflowGraph.class);
+            List<WorkflowNodeExecution> nodeExecs = nodeExecutionRepository.findByWorkflowExecutionIdOrderByCreatedAtAsc(execution.getId());
+
+            WorkflowNodeExecution failedNodeExec = nodeExecs.stream()
+                    .filter(ne -> ne.getStatus() == WorkflowNodeExecution.Status.FAILED)
+                    .reduce((first, second) -> second)
+                    .orElse(null);
+
+            WorkflowNode targetNode = null;
+            if (failedNodeExec != null) {
+                targetNode = graph.findNode(failedNodeExec.getNodeId());
+            }
+            if (targetNode == null) {
+                targetNode = graph.getNodes().stream().filter(n -> n.getType() == NodeType.START).findFirst().orElse(null);
+            }
+
+            if (targetNode == null) {
+                throw new ApiException("Cannot determine retry node in workflow graph", HttpStatus.INTERNAL_SERVER_ERROR, "CORRUPT_WORKFLOW_GRAPH");
+            }
+
+            execution.setStatus(WorkflowExecution.Status.RUNNING);
+            execution.setErrorCode(null);
+            execution.setErrorMessage(null);
+            executionRepository.save(execution);
+
+            auditService.recordSystemEvent(orgId, "WORKFLOW_RETRY_INITIATED", "WORKFLOW_EXECUTION",
+                    execution.getId().toString(), "FAILED", "RUNNING");
+
+            executeNodeStep(execution, graph, targetNode, new HashMap<>());
+            return execution;
+        } catch (Exception e) {
+            log.error("Failed to retry execution {}: {}", executionId, e.getMessage(), e);
+            throw new ApiException("Failed to retry execution: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, "RETRY_FAILED");
+        }
+    }
+
+    @Transactional
+    public WorkflowExecution replayExecution(UUID executionId) {
+        UUID orgId = TenantContext.getCurrentTenant();
+        WorkflowExecution execution = executionRepository.findByIdAndOrganizationId(executionId, orgId)
+                .orElseThrow(() -> new ResourceNotFoundException("WorkflowExecution", executionId));
+
+        auditService.recordSystemEvent(orgId, "WORKFLOW_REPLAY_REQUESTED", "WORKFLOW_EXECUTION",
+                execution.getId().toString(), execution.getStatus().name(), "REPLAY");
+
+        return startWorkflow(execution.getWorkflowDefinitionId(), execution.getBusinessReferenceId());
+    }
+
+    @Transactional
     public WorkflowDefinition seedDefaultWorkflowForOrganization(UUID organizationId, UUID createdBy) {
         WorkflowDefinition def = new WorkflowDefinition(
                 organizationId,

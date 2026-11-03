@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api/client';
 import { WorkflowExecution, WorkflowNodeExecution, PagedResponse, ApiResponse } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, Play } from 'lucide-react';
 
 export const Executions: React.FC = () => {
   const queryClient = useQueryClient();
@@ -37,6 +37,30 @@ export const Executions: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['executions-list'] });
+    },
+  });
+
+  const retryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.post<ApiResponse<WorkflowExecution>>(`/executions/${id}/retry`);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['executions-list'] });
+      queryClient.invalidateQueries({ queryKey: ['node-executions'] });
+    },
+  });
+
+  const replayMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.post<ApiResponse<WorkflowExecution>>(`/executions/${id}/replay`);
+      return res.data.data;
+    },
+    onSuccess: (newExec) => {
+      queryClient.invalidateQueries({ queryKey: ['executions-list'] });
+      if (newExec?.id) {
+        setSelectedExecutionId(newExec.id);
+      }
     },
   });
 
@@ -119,17 +143,49 @@ export const Executions: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          {canCancel && (exec.status === 'RUNNING' || exec.status === 'WAITING_APPROVAL') && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                cancelMutation.mutate(exec.id);
-                              }}
-                              className="px-2 py-1 text-[11px] text-rose-600 hover:bg-rose-50 rounded border border-rose-200"
-                            >
-                              Cancel
-                            </button>
-                          )}
+                          <div className="flex items-center justify-end gap-1.5">
+                            {exec.status === 'FAILED' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  retryMutation.mutate(exec.id);
+                                }}
+                                disabled={retryMutation.isPending}
+                                className="px-2 py-1 text-[11px] bg-rose-50 text-rose-700 hover:bg-rose-100 rounded border border-rose-200 flex items-center gap-1 font-semibold"
+                                title="Retry failed step"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                                Retry
+                              </button>
+                            )}
+
+                            {(exec.status === 'COMPLETED' || exec.status === 'FAILED' || exec.status === 'CANCELLED') && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  replayMutation.mutate(exec.id);
+                                }}
+                                disabled={replayMutation.isPending}
+                                className="px-2 py-1 text-[11px] bg-slate-50 text-slate-700 hover:bg-slate-100 rounded border border-slate-200 flex items-center gap-1"
+                                title="Replay entire workflow pipeline"
+                              >
+                                <Play className="w-3 h-3 text-indigo-600" />
+                                Replay
+                              </button>
+                            )}
+
+                            {canCancel && (exec.status === 'RUNNING' || exec.status === 'WAITING_APPROVAL') && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  cancelMutation.mutate(exec.id);
+                                }}
+                                className="px-2 py-1 text-[11px] text-rose-600 hover:bg-rose-50 rounded border border-rose-200"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );

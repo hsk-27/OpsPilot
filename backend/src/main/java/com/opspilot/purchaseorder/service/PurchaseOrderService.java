@@ -6,6 +6,7 @@ import com.opspilot.common.response.PagedResponse;
 import com.opspilot.common.tenant.TenantContext;
 import com.opspilot.purchaseorder.dto.CreatePurchaseOrderRequest;
 import com.opspilot.purchaseorder.dto.PurchaseOrderDto;
+import com.opspilot.purchaseorder.dto.UpdatePurchaseOrderRequest;
 import com.opspilot.purchaseorder.entity.PurchaseOrder;
 import com.opspilot.purchaseorder.entity.PurchaseOrderLine;
 import com.opspilot.purchaseorder.repository.PurchaseOrderRepository;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -96,6 +98,28 @@ public class PurchaseOrderService {
         po.setTaxAmount(taxTotal);
         po.setTotalAmount(subtotal.add(taxTotal));
 
+        po = purchaseOrderRepository.save(po);
+        return PurchaseOrderDto.from(po);
+    }
+
+    @Transactional
+    public PurchaseOrderDto updatePurchaseOrder(UUID id, UpdatePurchaseOrderRequest request) {
+        UUID orgId = TenantContext.getCurrentTenant();
+        PurchaseOrder po = purchaseOrderRepository.findByIdAndOrganizationId(id, orgId)
+                .orElseThrow(() -> new ResourceNotFoundException("PurchaseOrder", id));
+
+        if (request.getStatus() != null && !request.getStatus().isBlank()) {
+            po.setStatus(request.getStatus().trim().toUpperCase());
+        }
+        if (request.getTotalAmount() != null) {
+            po.setTotalAmount(request.getTotalAmount());
+        }
+        if (request.getSupplierId() != null) {
+            supplierRepository.findByIdAndOrganizationId(request.getSupplierId(), orgId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Supplier", request.getSupplierId()));
+            po.setSupplierId(request.getSupplierId());
+        }
+        po.setUpdatedAt(Instant.now());
         po = purchaseOrderRepository.save(po);
         return PurchaseOrderDto.from(po);
     }

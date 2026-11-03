@@ -79,4 +79,20 @@ public class ExecutionController {
 
         return ResponseEntity.ok(ApiResponse.success("Execution cancelled", execution));
     }
+
+    @PostMapping("/{executionId}/retry")
+    @PreAuthorize("hasRole('OWNER') or hasRole('ADMIN') or hasRole('OPERATOR')")
+    @Operation(summary = "Retry a failed workflow execution from the failed node")
+    public ResponseEntity<ApiResponse<WorkflowExecution>> retryExecution(@PathVariable UUID executionId) {
+        WorkflowExecution execution = workflowEngineService.retryExecution(executionId);
+        return ResponseEntity.ok(ApiResponse.success("Workflow execution retry initiated", execution));
+    }
+
+    @PostMapping("/{executionId}/replay")
+    @PreAuthorize("hasRole('OWNER') or hasRole('ADMIN') or hasRole('OPERATOR')")
+    @Operation(summary = "Replay workflow execution from beginning")
+    public ResponseEntity<ApiResponse<WorkflowExecution>> replayExecution(@PathVariable UUID executionId) {
+        WorkflowExecution execution = workflowEngineService.replayExecution(executionId);
+        return ResponseEntity.ok(ApiResponse.success("Workflow execution replay initiated", execution));
+    }
 }

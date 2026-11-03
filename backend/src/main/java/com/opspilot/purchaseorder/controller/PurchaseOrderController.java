@@ -4,6 +4,7 @@ import com.opspilot.common.response.ApiResponse;
 import com.opspilot.common.response.PagedResponse;
 import com.opspilot.purchaseorder.dto.CreatePurchaseOrderRequest;
 import com.opspilot.purchaseorder.dto.PurchaseOrderDto;
+import com.opspilot.purchaseorder.dto.UpdatePurchaseOrderRequest;
 import com.opspilot.purchaseorder.service.PurchaseOrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -47,5 +48,14 @@ public class PurchaseOrderController {
     public ResponseEntity<ApiResponse<PurchaseOrderDto>> createPurchaseOrder(
             @Valid @RequestBody CreatePurchaseOrderRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Purchase order created successfully", purchaseOrderService.createPurchaseOrder(request)));
+    }
+
+    @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('OWNER') or hasRole('ADMIN') or hasRole('OPERATOR')")
+    @Operation(summary = "Update purchase order status, totals, or supplier")
+    public ResponseEntity<ApiResponse<PurchaseOrderDto>> updatePurchaseOrder(
+            @PathVariable UUID id,
+            @RequestBody UpdatePurchaseOrderRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Purchase order updated successfully", purchaseOrderService.updatePurchaseOrder(id, request)));
     }
 }

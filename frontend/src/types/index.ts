@@ -295,6 +295,42 @@ export interface OverviewAnalytics {
   avgAiLatencyMs: number;
 }
 
+export interface AppNotification {
+  id: string;
+  organizationId: string;
+  userId?: string;
+  title: string;
+  message: string;
+  type: string;
+  read: boolean;
+  linkUrl?: string;
+  createdAt: string;
+}
+
+export interface OrganizationSettings {
+  id: string;
+  organizationId: string;
+  approvalThresholdAmount: number;
+  matchingToleranceAmount: number;
+  duplicateWindowDays: number;
+  autoExportApproved: boolean;
+  updatedAt: string;
+}
+
+export interface IntegrationConfig {
+  id: string;
+  organizationId: string;
+  name: string;
+  integrationType: string;
+  endpointUrl?: string;
+  authType: string;
+  apiKeyMasked?: string;
+  status: string;
+  lastTestedAt?: string;
+  lastTestResult?: string;
+  createdAt: string;
+}
+
 export interface PagedResponse<T> {
   content: T[];
   page: number;

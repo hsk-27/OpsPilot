@@ -15,6 +15,7 @@ import { WorkflowBuilder } from './pages/WorkflowBuilder';
 import { Executions } from './pages/Executions';
 import { Analytics } from './pages/Analytics';
 import { Audit } from './pages/Audit';
+import { Settings } from './pages/Settings';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -76,6 +77,7 @@ export const App: React.FC = () => {
               <Route path="executions" element={<Executions />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="audit" element={<Audit />} />
+              <Route path="settings" element={<Settings />} />
             </Route>
 
             {/* Catch-all */}

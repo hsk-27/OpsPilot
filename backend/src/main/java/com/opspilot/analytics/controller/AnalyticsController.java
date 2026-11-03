@@ -34,4 +34,22 @@ public class AnalyticsController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getInvoiceBreakdown() {
         return ResponseEntity.ok(ApiResponse.success(analyticsService.getInvoiceBreakdown()));
     }
+
+    @GetMapping("/workflows")
+    @Operation(summary = "Get workflow execution telemetry and KPIs")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getWorkflowAnalytics() {
+        return ResponseEntity.ok(ApiResponse.success(analyticsService.getWorkflowAnalytics()));
+    }
+
+    @GetMapping("/ai-usage")
+    @Operation(summary = "Get AI inference telemetry and usage cost")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getAiUsageAnalytics() {
+        return ResponseEntity.ok(ApiResponse.success(analyticsService.getAiUsageAnalytics()));
+    }
+
+    @GetMapping("/approvals")
+    @Operation(summary = "Get human approval task metrics and turnaround times")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getApprovalAnalytics() {
+        return ResponseEntity.ok(ApiResponse.success(analyticsService.getApprovalAnalytics()));
+    }
 }

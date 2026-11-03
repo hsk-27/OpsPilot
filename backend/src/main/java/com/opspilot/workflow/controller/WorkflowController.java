@@ -13,6 +13,8 @@ import com.opspilot.workflow.model.WorkflowGraph;
 import com.opspilot.workflow.repository.WorkflowDefinitionRepository;
 import com.opspilot.workflow.repository.WorkflowVersionRepository;
 import com.opspilot.workflow.service.WorkflowValidationService;
+import com.opspilot.workflow.entity.WorkflowExecution;
+import com.opspilot.workflow.service.WorkflowEngineService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Pageable;
@@ -36,16 +38,19 @@ public class WorkflowController {
     private final WorkflowDefinitionRepository definitionRepository;
     private final WorkflowVersionRepository versionRepository;
     private final WorkflowValidationService validationService;
+    private final WorkflowEngineService workflowEngineService;
     private final ObjectMapper objectMapper;
 
     public WorkflowController(
             WorkflowDefinitionRepository definitionRepository,
             WorkflowVersionRepository versionRepository,
             WorkflowValidationService validationService,
+            WorkflowEngineService workflowEngineService,
             ObjectMapper objectMapper) {
         this.definitionRepository = definitionRepository;
         this.versionRepository = versionRepository;
         this.validationService = validationService;
+        this.workflowEngineService = workflowEngineService;
         this.objectMapper = objectMapper;
     }
 
@@ -141,5 +146,69 @@ public class WorkflowController {
         WorkflowDefinition def = definitionRepository.findByIdAndOrganizationId(id, orgId)
                 .orElseThrow(() -> new ResourceNotFoundException("WorkflowDefinition", id));
         return ResponseEntity.ok(ApiResponse.success(versionRepository.findByWorkflowDefinitionIdOrderByVersionNumberDesc(def.getId())));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('OWNER') or hasRole('ADMIN')")
+    @Operation(summary = "Update workflow definition details (name, description, status)")
+    public ResponseEntity<ApiResponse<WorkflowDefinition>> updateWorkflow(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> body) {
+        UUID orgId = TenantContext.getCurrentTenant();
+        WorkflowDefinition def = definitionRepository.findByIdAndOrganizationId(id, orgId)
+                .orElseThrow(() -> new ResourceNotFoundException("WorkflowDefinition", id));
+
+        if (body.containsKey("name")) def.setName(body.get("name"));
+        if (body.containsKey("description")) def.setDescription(body.get("description"));
+        if (body.containsKey("status")) def.setStatus(body.get("status"));
+
+        def = definitionRepository.save(def);
+        return ResponseEntity.ok(ApiResponse.success("Workflow updated successfully", def));
+    }
+
+    @PostMapping("/{id}/rollback/{versionId}")
+    @PreAuthorize("hasRole('OWNER') or hasRole('ADMIN')")
+    @Operation(summary = "Rollback workflow definition to a prior published version")
+    public ResponseEntity<ApiResponse<WorkflowVersion>> rollbackWorkflow(
+            @PathVariable UUID id,
+            @PathVariable UUID versionId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        UUID orgId = TenantContext.getCurrentTenant();
+        WorkflowDefinition def = definitionRepository.findByIdAndOrganizationId(id, orgId)
+                .orElseThrow(() -> new ResourceNotFoundException("WorkflowDefinition", id));
+
+        WorkflowVersion targetVersion = versionRepository.findById(versionId)
+                .orElseThrow(() -> new ResourceNotFoundException("WorkflowVersion", versionId));
+
+        if (!targetVersion.getWorkflowDefinitionId().equals(def.getId())) {
+            throw new ApiException("Version does not belong to workflow", HttpStatus.BAD_REQUEST, "INVALID_VERSION");
+        }
+
+        Integer maxVer = versionRepository.findMaxVersionNumber(def.getId());
+        int newVersionNum = (maxVer != null ? maxVer : 0) + 1;
+
+        WorkflowVersion rolledBackVersion = new WorkflowVersion(def.getId(), newVersionNum, targetVersion.getGraphDefinitionJson(), principal.getId());
+        rolledBackVersion.setValidationResultJson(targetVersion.getValidationResultJson());
+        rolledBackVersion = versionRepository.save(rolledBackVersion);
+
+        def.setStatus("ACTIVE");
+        definitionRepository.save(def);
+
+        return ResponseEntity.ok(ApiResponse.success("Workflow rolled back to version " + targetVersion.getVersionNumber() + " as v" + newVersionNum, rolledBackVersion));
+    }
+
+    @PostMapping("/{id}/execute")
+    @PreAuthorize("hasRole('OWNER') or hasRole('ADMIN') or hasRole('OPERATOR')")
+    @Operation(summary = "Manually execute workflow on an invoice")
+    public ResponseEntity<ApiResponse<WorkflowExecution>> executeWorkflow(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> body) {
+        String invoiceIdStr = body.get("invoiceId");
+        if (invoiceIdStr == null || invoiceIdStr.isBlank()) {
+            throw new ApiException("invoiceId is required", HttpStatus.BAD_REQUEST, "MISSING_INVOICE_ID");
+        }
+        UUID invoiceId = UUID.fromString(invoiceIdStr.trim());
+        WorkflowExecution execution = workflowEngineService.startWorkflow(id, invoiceId);
+        return ResponseEntity.ok(ApiResponse.success("Workflow execution started", execution));
     }
 }

@@ -297,4 +297,22 @@ public class ApprovalServiceTest {
         assertEquals("TASK_ALREADY_DECIDED", ex.getCode());
         assertEquals(409, ex.getStatus().value());
     }
+
+    @Test
+    @DisplayName("Escalating pending approval task reassigns role to ADMIN and records escalation")
+    public void testEscalateApprovalTask() {
+        Invoice inv = new Invoice(tenantId, "INV-ESCALATE-1", UUID.randomUUID());
+        inv.setId(UUID.randomUUID());
+        invoiceStore.put(inv.getId(), inv);
+
+        ApprovalTask task = new ApprovalTask(tenantId, UUID.randomUUID(), null, inv.getId(), null, "APPROVER");
+        task.setId(UUID.randomUUID());
+        taskStore.put(task.getId(), task);
+
+        ApprovalTaskDto escalated = approvalService.escalate(task.getId(), userId, "Invoice total exceeds department limit");
+
+        assertNotNull(escalated);
+        assertEquals("ADMIN", escalated.getAssignedRole());
+        assertEquals("ADMIN", task.getAssignedRole());
+    }
 }

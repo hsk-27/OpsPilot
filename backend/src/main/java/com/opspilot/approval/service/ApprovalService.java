@@ -20,6 +20,8 @@ import com.opspilot.invoice.entity.Invoice;
 import com.opspilot.invoice.entity.ProcessingStatus;
 import com.opspilot.invoice.repository.InvoiceRepository;
 import com.opspilot.workflow.service.WorkflowEngineService;
+import com.opspilot.notification.service.NotificationService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +29,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -40,6 +43,7 @@ public class ApprovalService {
     private final com.opspilot.purchaseorder.repository.PurchaseOrderRepository purchaseOrderRepository;
     private final WorkflowEngineService workflowEngineService;
     private final AuditService auditService;
+    private final NotificationService notificationService;
 
     public ApprovalService(
             ApprovalTaskRepository taskRepository,
@@ -49,7 +53,8 @@ public class ApprovalService {
             com.opspilot.supplier.repository.SupplierRepository supplierRepository,
             com.opspilot.purchaseorder.repository.PurchaseOrderRepository purchaseOrderRepository,
             @Lazy WorkflowEngineService workflowEngineService,
-            AuditService auditService) {
+            AuditService auditService,
+            @Autowired(required = false) NotificationService notificationService) {
         this.taskRepository = taskRepository;
         this.decisionRepository = decisionRepository;
         this.invoiceRepository = invoiceRepository;
@@ -58,6 +63,19 @@ public class ApprovalService {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.workflowEngineService = workflowEngineService;
         this.auditService = auditService;
+        this.notificationService = notificationService;
+    }
+
+    public ApprovalService(
+            ApprovalTaskRepository taskRepository,
+            ApprovalDecisionRepository decisionRepository,
+            InvoiceRepository invoiceRepository,
+            UserRepository userRepository,
+            com.opspilot.supplier.repository.SupplierRepository supplierRepository,
+            com.opspilot.purchaseorder.repository.PurchaseOrderRepository purchaseOrderRepository,
+            WorkflowEngineService workflowEngineService,
+            AuditService auditService) {
+        this(taskRepository, decisionRepository, invoiceRepository, userRepository, supplierRepository, purchaseOrderRepository, workflowEngineService, auditService, null);
     }
 
     private InvoiceDto enrichInvoiceDto(Invoice inv, UUID orgId) {
@@ -158,5 +176,49 @@ public class ApprovalService {
         }
 
         return decision;
+    }
+
+    @Transactional
+    public ApprovalTaskDto escalate(UUID taskId, UUID actorUserId, String reason) {
+        UUID orgId = TenantContext.getCurrentTenant();
+        ApprovalTask task = taskRepository.findByIdAndOrganizationId(taskId, orgId)
+                .orElseThrow(() -> new ResourceNotFoundException("ApprovalTask", taskId));
+
+        if (task.getStatus() != ApprovalTask.Status.PENDING) {
+            throw new ApiException("Cannot escalate non-pending task (status: " + task.getStatus() + ")",
+                    HttpStatus.CONFLICT, "TASK_NOT_PENDING");
+        }
+
+        String oldRole = task.getAssignedRole();
+        String newRole = "ADMIN".equalsIgnoreCase(oldRole) ? "OWNER" : "ADMIN";
+        task.setAssignedRole(newRole);
+        task.setUpdatedAt(Instant.now());
+        task = taskRepository.save(task);
+
+        auditService.recordEvent(
+                actorUserId,
+                "USER",
+                "APPROVAL_ESCALATED",
+                "APPROVAL_TASK",
+                task.getId().toString(),
+                oldRole,
+                newRole + (reason != null && !reason.isBlank() ? " (" + reason.trim() + ")" : "")
+        );
+
+        if (notificationService != null) {
+            try {
+                notificationService.sendNotification(
+                        orgId,
+                        null,
+                        "Approval Task Escalated",
+                        "Approval task for invoice #" + task.getInvoiceId() + " was escalated to " + newRole + ". Reason: " + (reason != null && !reason.isBlank() ? reason : "Requires management review"),
+                        com.opspilot.notification.entity.NotificationType.APPROVAL_REQUIRED,
+                        "/approvals"
+                );
+            } catch (Exception ignored) {}
+        }
+
+        Invoice inv = invoiceRepository.findById(task.getInvoiceId()).orElse(null);
+        return ApprovalTaskDto.from(task, enrichInvoiceDto(inv, orgId));
     }
 }

@@ -54,4 +54,16 @@ public class ApprovalController {
         ApprovalDecision decision = approvalService.decide(taskId, principal.getId(), request);
         return ResponseEntity.ok(ApiResponse.success("Decision recorded: " + request.getDecision(), decision));
     }
+
+    @PostMapping("/{taskId}/escalate")
+    @PreAuthorize("hasRole('OWNER') or hasRole('ADMIN') or hasRole('APPROVER') or hasRole('OPERATOR')")
+    @Operation(summary = "Escalate approval task to management (ADMIN/OWNER)")
+    public ResponseEntity<ApiResponse<ApprovalTaskDto>> escalate(
+            @PathVariable UUID taskId,
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String reason = body != null ? body.get("reason") : null;
+        ApprovalTaskDto dto = approvalService.escalate(taskId, principal.getId(), reason);
+        return ResponseEntity.ok(ApiResponse.success("Approval task escalated successfully", dto));
+    }
 }
