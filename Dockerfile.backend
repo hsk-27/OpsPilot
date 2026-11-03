@@ -1,0 +1,28 @@
+# Multi-stage build for OpsPilot Spring Boot backend
+FROM eclipse-temurin:21-jdk-jammy AS builder
+WORKDIR /workspace
+
+# Copy Maven wrapper and POM
+COPY backend/.mvn/ .mvn/
+COPY backend/mvnw backend/pom.xml ./
+RUN ./mvnw dependency:go-offline -B
+
+# Build application
+COPY backend/src ./src
+RUN ./mvnw clean package -DskipTests -B
+
+# Production runtime image
+FROM eclipse-temurin:21-jre-jammy
+WORKDIR /app
+
+RUN groupadd -r opspilot && useradd -r -g opspilot -m -d /app opspilot && \
+    mkdir -p /var/opspilot/storage && \
+    chown -R opspilot:opspilot /app /var/opspilot
+
+USER opspilot
+
+COPY --from=builder /workspace/target/*.jar /app/opspilot-backend.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/opspilot-backend.jar"]

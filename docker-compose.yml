@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: opspilot-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-opspilot}
+      POSTGRES_USER: ${POSTGRES_USER:-opspilot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-opspilot_secure_pass_2026}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opspilot -d opspilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: opspilot-backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-opspilot}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-opspilot}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-opspilot_secure_pass_2026}
+      OPSPILOT_STORAGE_DIR: /var/opspilot/storage
+      OPSPILOT_AI_PROVIDER: ${OPSPILOT_AI_PROVIDER:-MOCK}
+      OPSPILOT_GEMINI_API_KEY: ${OPSPILOT_GEMINI_API_KEY:-}
+      OPSPILOT_JWT_SECRET: ${OPSPILOT_JWT_SECRET:-4c529a67e1a389f4178bcde29401826f58273641b9c7a10283746592019a8b7c}
+    ports:
+      - "8080:8080"
+    volumes:
+      - opspilot_storage:/var/opspilot/storage
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: opspilot-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:
+  opspilot_storage:
