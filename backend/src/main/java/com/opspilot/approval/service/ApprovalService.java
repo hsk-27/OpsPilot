@@ -45,6 +45,7 @@ public class ApprovalService {
     private final AuditService auditService;
     private final NotificationService notificationService;
 
+    @Autowired
     public ApprovalService(
             ApprovalTaskRepository taskRepository,
             ApprovalDecisionRepository decisionRepository,

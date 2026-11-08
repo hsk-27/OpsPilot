@@ -68,7 +68,9 @@ public class AiExtractionService {
         invocation.setStatus(result.isSuccess() ? "SUCCESS" : "FAILURE");
         invocation.setErrorCode(result.getErrorMessage());
 
-        invocationRepository.save(invocation);
+        if (invocationRepository != null) {
+            invocationRepository.save(invocation);
+        }
 
         return result;
     }

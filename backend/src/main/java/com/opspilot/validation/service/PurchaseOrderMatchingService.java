@@ -1,9 +1,12 @@
 package com.opspilot.validation.service;
 
+import com.opspilot.admin.entity.OrganizationSettings;
+import com.opspilot.admin.repository.OrganizationSettingsRepository;
 import com.opspilot.invoice.entity.Invoice;
 import com.opspilot.purchaseorder.entity.PurchaseOrder;
 import com.opspilot.purchaseorder.repository.PurchaseOrderRepository;
 import com.opspilot.validation.dto.PoMatchResult;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -16,9 +19,18 @@ public class PurchaseOrderMatchingService {
     private static final BigDecimal AMOUNT_TOLERANCE_PERCENT = new BigDecimal("0.02"); // 2% tolerance
 
     private final PurchaseOrderRepository purchaseOrderRepository;
+    private final OrganizationSettingsRepository settingsRepository;
 
     public PurchaseOrderMatchingService(PurchaseOrderRepository purchaseOrderRepository) {
+        this(purchaseOrderRepository, null);
+    }
+
+    @Autowired
+    public PurchaseOrderMatchingService(
+            PurchaseOrderRepository purchaseOrderRepository,
+            @Autowired(required = false) OrganizationSettingsRepository settingsRepository) {
         this.purchaseOrderRepository = purchaseOrderRepository;
+        this.settingsRepository = settingsRepository;
     }
 
     public PoMatchResult matchInvoice(Invoice invoice) {
@@ -71,18 +83,29 @@ public class PurchaseOrderMatchingService {
         }
 
         // Amount tolerance check:
-        // If invoice total <= PO total, or diff <= 2% of PO total
+        // If invoice total <= PO total, or diff <= 2% of PO total or diff <= matchingToleranceAmount
         if (diff.compareTo(BigDecimal.ZERO) <= 0) {
             result.setOutcome(PoMatchResult.Outcome.MATCHED);
             result.setMessage("Invoice total is within purchase order authorized amount.");
         } else {
             BigDecimal maxAllowedOver = poTotal.multiply(AMOUNT_TOLERANCE_PERCENT).setScale(2, RoundingMode.HALF_UP);
+            if (settingsRepository != null && invoice.getOrganizationId() != null) {
+                try {
+                    BigDecimal configuredTolerance = settingsRepository.findByOrganizationId(invoice.getOrganizationId())
+                            .map(OrganizationSettings::getMatchingToleranceAmount)
+                            .orElse(BigDecimal.ZERO);
+                    if (configuredTolerance.compareTo(maxAllowedOver) > 0) {
+                        maxAllowedOver = configuredTolerance;
+                    }
+                } catch (Exception ignored) {}
+            }
+
             if (diff.compareTo(maxAllowedOver) <= 0) {
                 result.setOutcome(PoMatchResult.Outcome.PARTIALLY_MATCHED);
-                result.setMessage(String.format("Invoice slightly exceeds PO total by %s (within %s%% tolerance).", diff, "2"));
+                result.setMessage(String.format("Invoice exceeds PO total by %s, which is within the allowed tolerance threshold (%s).", diff, maxAllowedOver));
             } else {
                 result.setOutcome(PoMatchResult.Outcome.NEEDS_REVIEW);
-                result.setMessage(String.format("Invoice exceeds purchase order amount by %s, which exceeds tolerance threshold.", diff));
+                result.setMessage(String.format("Invoice exceeds purchase order amount by %s, which exceeds tolerance threshold (%s).", diff, maxAllowedOver));
             }
         }
 

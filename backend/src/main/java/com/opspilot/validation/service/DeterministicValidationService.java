@@ -1,14 +1,18 @@
 package com.opspilot.validation.service;
 
+import com.opspilot.admin.entity.OrganizationSettings;
+import com.opspilot.admin.repository.OrganizationSettingsRepository;
 import com.opspilot.invoice.entity.Invoice;
 import com.opspilot.invoice.entity.InvoiceLine;
 import com.opspilot.invoice.repository.InvoiceRepository;
 import com.opspilot.supplier.repository.SupplierRepository;
 import com.opspilot.validation.dto.RuleEvaluation;
 import com.opspilot.validation.dto.ValidationResult;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
 
@@ -19,10 +23,20 @@ public class DeterministicValidationService {
 
     private final InvoiceRepository invoiceRepository;
     private final SupplierRepository supplierRepository;
+    private final OrganizationSettingsRepository settingsRepository;
 
     public DeterministicValidationService(InvoiceRepository invoiceRepository, SupplierRepository supplierRepository) {
+        this(invoiceRepository, supplierRepository, null);
+    }
+
+    @Autowired
+    public DeterministicValidationService(
+            InvoiceRepository invoiceRepository,
+            SupplierRepository supplierRepository,
+            @Autowired(required = false) OrganizationSettingsRepository settingsRepository) {
         this.invoiceRepository = invoiceRepository;
         this.supplierRepository = supplierRepository;
+        this.settingsRepository = settingsRepository;
     }
 
     public ValidationResult validateInvoice(Invoice invoice) {
@@ -131,7 +145,22 @@ public class DeterministicValidationService {
                     invoice.getCurrency()
             );
 
-            boolean hasDuplicate = duplicates.stream().anyMatch(d -> !d.getId().equals(invoice.getId()));
+            int windowDays = 90;
+            if (settingsRepository != null && invoice.getOrganizationId() != null) {
+                try {
+                    windowDays = settingsRepository.findByOrganizationId(invoice.getOrganizationId())
+                            .map(OrganizationSettings::getDuplicateWindowDays)
+                            .orElse(90);
+                } catch (Exception ignored) {}
+            }
+
+            LocalDate invDate = invoice.getInvoiceDate() != null ? invoice.getInvoiceDate() : LocalDate.now();
+            LocalDate cutoff = invDate.minusDays(windowDays);
+
+            boolean hasDuplicate = duplicates.stream()
+                    .filter(d -> !d.getId().equals(invoice.getId()))
+                    .anyMatch(d -> d.getInvoiceDate() == null || !d.getInvoiceDate().isBefore(cutoff));
+
             if (hasDuplicate) {
                 result.addEvaluation(RuleEvaluation.fail(
                         "RULE_DUPLICATE_CHECK",
