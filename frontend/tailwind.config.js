@@ -7,19 +7,28 @@ export default {
   theme: {
     extend: {
       colors: {
-        brand: {
-          50: '#f0f7ff',
-          100: '#e0effe',
-          200: '#bae0fd',
-          300: '#7cc7fb',
-          400: '#36abf7',
-          500: '#0c8fe9',
-          600: '#0271c7',
-          700: '#035aa1',
-          800: '#074c84',
-          900: '#0c406e',
-          950: '#082949'
+        fintech: {
+          50: '#F4FBF7',
+          100: '#E6F7EF',
+          200: '#C2EED7',
+          300: '#8FE0B7',
+          400: '#4EC78E',
+          500: '#10B981',
+          600: '#059669',
+          700: '#047857',
+          800: '#065F46',
+          900: '#064E3B',
+          950: '#022C22',
+        },
+        obsidian: {
+          800: '#151C28',
+          900: '#0B0F17',
+          950: '#06090E',
         }
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       }
     },
   },

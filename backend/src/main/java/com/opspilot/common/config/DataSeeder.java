@@ -86,16 +86,16 @@ public class DataSeeder implements CommandLineRunner {
         // 2. Users with Distinct Roles
         String encodedPass = passwordEncoder.encode("Password123!");
 
-        User admin = userRepository.save(new User("admin@opspilot.io", encodedPass, "Sarah", "Connor"));
+        User admin = userRepository.save(new User("admin@opspilot.io", encodedPass, "Eleanor", "Vance"));
         membershipRepository.save(new OrganizationMembership(org.getId(), admin.getId(), Role.OWNER));
 
-        User approver = userRepository.save(new User("approver@opspilot.io", encodedPass, "Michael", "Scott"));
+        User approver = userRepository.save(new User("approver@opspilot.io", encodedPass, "Marcus", "Sterling"));
         membershipRepository.save(new OrganizationMembership(org.getId(), approver.getId(), Role.APPROVER));
 
-        User operator = userRepository.save(new User("operator@opspilot.io", encodedPass, "Pam", "Beesly"));
+        User operator = userRepository.save(new User("operator@opspilot.io", encodedPass, "David", "Chen"));
         membershipRepository.save(new OrganizationMembership(org.getId(), operator.getId(), Role.OPERATOR));
 
-        User viewer = userRepository.save(new User("viewer@opspilot.io", encodedPass, "Jim", "Halpert"));
+        User viewer = userRepository.save(new User("viewer@opspilot.io", encodedPass, "Sophia", "Rodriguez"));
         membershipRepository.save(new OrganizationMembership(org.getId(), viewer.getId(), Role.VIEWER));
 
         // 3. Workflow Seed

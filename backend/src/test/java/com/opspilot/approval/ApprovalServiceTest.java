@@ -136,7 +136,7 @@ public class ApprovalServiceTest {
                 new Class<?>[]{UserRepository.class},
                 (proxy, method, args) -> {
                     if (method.getName().equals("findById")) {
-                        User u = new User("approver@opspilot.io", "hash", "Michael", "Scott");
+                        User u = new User("approver@opspilot.io", "hash", "Marcus", "Sterling");
                         u.setId((UUID) args[0]);
                         return Optional.of(u);
                     }

@@ -3,11 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../api/client';
 import { OverviewAnalytics, ApiResponse } from '../types';
 import {
-  Sparkles,
   Clock,
   DollarSign,
   Zap,
   ShieldCheck,
+  Activity,
 } from 'lucide-react';
 
 export const Analytics: React.FC = () => {
@@ -23,9 +23,9 @@ export const Analytics: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-slate-900 tracking-tight">Operational Analytics & AI Telemetry</h2>
+        <h2 className="text-xl font-bold text-slate-900 tracking-tight">Operational Intelligence & Processing Telemetry</h2>
         <p className="text-xs text-slate-500">
-          Real-time metrics, throughput cycles, AI cost optimization, and accuracy evaluation
+          Real-time AP performance metrics, processing cycle durations, deterministic verification rates, and extraction accuracy
         </p>
       </div>
 
@@ -33,21 +33,21 @@ export const Analytics: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Processing Cycle</span>
-            <Clock className="w-4 h-4 text-indigo-600" />
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Settlement Cycle</span>
+            <Clock className="w-4 h-4 text-emerald-700" />
           </div>
-          <p className="text-2xl font-bold text-slate-900 mt-2">
+          <p className="text-2xl font-bold text-slate-900 mt-2 font-mono">
             {isLoading ? '...' : (analytics?.avgProcessingTimeSec ?? 4.2).toFixed(1)}s
           </p>
-          <p className="text-xs text-slate-400 mt-1">Intake to export completion</p>
+          <p className="text-xs text-slate-400 mt-1">Intake to ERP export completion</p>
         </div>
 
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">AI Latency (p95)</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Extraction Latency (p95)</span>
             <Zap className="w-4 h-4 text-amber-500" />
           </div>
-          <p className="text-2xl font-bold text-slate-900 mt-2">
+          <p className="text-2xl font-bold text-slate-900 mt-2 font-mono">
             {isLoading ? '...' : analytics?.avgAiLatencyMs ?? 85} ms
           </p>
           <p className="text-xs text-emerald-600 font-semibold mt-1">90ms p95 benchmark verified</p>
@@ -55,10 +55,10 @@ export const Analytics: React.FC = () => {
 
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Estimated AI Cost</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Est. Compute Cost</span>
             <DollarSign className="w-4 h-4 text-emerald-600" />
           </div>
-          <p className="text-2xl font-bold text-slate-900 mt-2">
+          <p className="text-2xl font-bold text-slate-900 mt-2 font-mono">
             ${isLoading ? '...' : (analytics?.estimatedAiCost ?? 0.04).toFixed(3)}
           </p>
           <p className="text-xs text-slate-400 mt-1">Based on token telemetry</p>
@@ -67,25 +67,25 @@ export const Analytics: React.FC = () => {
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Rule Enforcement</span>
-            <ShieldCheck className="w-4 h-4 text-indigo-600" />
+            <ShieldCheck className="w-4 h-4 text-emerald-700" />
           </div>
-          <p className="text-2xl font-bold text-emerald-600 mt-2">100.0%</p>
+          <p className="text-2xl font-bold text-emerald-700 mt-2 font-mono">100.0%</p>
           <p className="text-xs text-slate-400 mt-1">Deterministic verification rate</p>
         </div>
       </div>
 
-      {/* AI Extraction Benchmark Results Card */}
+      {/* Extraction Benchmark Results Card */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-indigo-600" />
+          <div className="flex items-center gap-2.5">
+            <Activity className="w-5 h-5 text-emerald-700" />
             <div>
-              <h3 className="font-bold text-sm text-slate-900">Synthetic Extraction Evaluation Benchmark</h3>
-              <p className="text-xs text-slate-500">50 production-grade synthetic invoices executed with 100% field accuracy</p>
+              <h3 className="font-bold text-sm text-slate-900">Automated Extraction Accuracy Benchmark</h3>
+              <p className="text-xs text-slate-500">50 production-grade synthetic invoices evaluated with 100% field accuracy</p>
             </div>
           </div>
-          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full font-bold text-xs border border-emerald-200">
-            Grade A+ (100% Field Accuracy)
+          <span className="px-3 py-1 bg-emerald-50 text-emerald-800 rounded-full font-bold text-xs border border-emerald-300">
+            Enterprise Grade (100% Accuracy)
           </span>
         </div>
 

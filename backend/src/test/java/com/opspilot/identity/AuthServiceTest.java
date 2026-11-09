@@ -156,7 +156,7 @@ class AuthServiceTest {
     @DisplayName("Guest login authenticates default operational user without credentials")
     void testGuestLogin() {
         UUID userId = UUID.randomUUID();
-        User adminUser = new User("admin@opspilot.io", "encoded_Password123!", "Sarah", "Connor");
+        User adminUser = new User("admin@opspilot.io", "encoded_Password123!", "Eleanor", "Vance");
         adminUser.setId(userId);
         foundUser = adminUser;
 
