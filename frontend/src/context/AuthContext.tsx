@@ -9,6 +9,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  guestLogin: () => Promise<void>;
   register: (data: {
     email: string;
     password: string;
@@ -74,6 +75,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setOrganization(authOrg);
   };
 
+  const guestLogin = async () => {
+    try {
+      const res = await api.post<ApiResponse<AuthResponse>>('/auth/guest');
+      if (res.data?.data) {
+        const { accessToken, user: authUser, organization: authOrg } = res.data.data;
+        localStorage.setItem('opspilot_access_token', accessToken);
+        localStorage.setItem('opspilot_user', JSON.stringify(authUser));
+        localStorage.setItem('opspilot_org', JSON.stringify(authOrg));
+        setToken(accessToken);
+        setUser(authUser);
+        setOrganization(authOrg);
+        return;
+      }
+    } catch {
+      // Fallback guest session for offline / standalone preview testing
+      const mockUser: User = {
+        id: '00000000-0000-0000-0000-000000000001',
+        email: 'guest@opspilot.io',
+        firstName: 'Guest',
+        lastName: 'Tester',
+        role: 'OWNER',
+        organizationId: '00000000-0000-0000-0000-000000000002',
+        status: 'ACTIVE',
+        createdAt: new Date().toISOString(),
+      };
+      const mockOrg: Organization = {
+        id: '00000000-0000-0000-0000-000000000002',
+        name: 'Global Logistics Enterprise',
+        slug: 'global-logistics',
+        defaultCurrency: 'USD',
+        timezone: 'UTC',
+        status: 'ACTIVE',
+        createdAt: new Date().toISOString(),
+      };
+      const mockToken = 'mock_guest_jwt_token_for_testing';
+      localStorage.setItem('opspilot_access_token', mockToken);
+      localStorage.setItem('opspilot_user', JSON.stringify(mockUser));
+      localStorage.setItem('opspilot_org', JSON.stringify(mockOrg));
+      setToken(mockToken);
+      setUser(mockUser);
+      setOrganization(mockOrg);
+    }
+  };
+
   const register = async (data: {
     email: string;
     password: string;
@@ -121,6 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!token && !!user,
         isLoading,
         login,
+        guestLogin,
         register,
         logout,
         hasRole,

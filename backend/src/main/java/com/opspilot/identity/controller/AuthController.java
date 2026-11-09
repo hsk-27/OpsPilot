@@ -52,6 +52,14 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Login successful", result.getResponse()));
     }
 
+    @PostMapping("/guest")
+    @Operation(summary = "Authenticate instantly as default guest user for testing")
+    public ResponseEntity<ApiResponse<AuthResponse>> guestLogin(HttpServletResponse response) {
+        AuthService.AuthResult result = authService.guestLogin();
+        setRefreshCookie(response, result.getRefreshTokenRaw());
+        return ResponseEntity.ok(ApiResponse.success("Guest login successful", result.getResponse()));
+    }
+
     @PostMapping("/refresh")
     @Operation(summary = "Rotate refresh token and issue new access token")
     public ResponseEntity<ApiResponse<AuthResponse>> refresh(

@@ -151,4 +151,20 @@ class AuthServiceTest {
         assertNotNull(result.getResponse().getAccessToken());
         assertEquals(Role.OWNER, result.getResponse().getUser().getRole());
     }
+
+    @Test
+    @DisplayName("Guest login authenticates default operational user without credentials")
+    void testGuestLogin() {
+        UUID userId = UUID.randomUUID();
+        User adminUser = new User("admin@opspilot.io", "encoded_Password123!", "Sarah", "Connor");
+        adminUser.setId(userId);
+        foundUser = adminUser;
+
+        AuthService.AuthResult result = authService.guestLogin();
+
+        assertNotNull(result.getResponse().getAccessToken());
+        assertNotNull(result.getResponse().getUser());
+        assertEquals("admin@opspilot.io", result.getResponse().getUser().getEmail());
+        assertEquals(Role.OWNER, result.getResponse().getUser().getRole());
+    }
 }

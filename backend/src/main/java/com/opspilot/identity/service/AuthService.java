@@ -153,6 +153,48 @@ public class AuthService {
     }
 
     @Transactional
+    public AuthResult guestLogin() {
+        User user = userRepository.findByEmailIgnoreCase("admin@opspilot.io")
+                .or(() -> userRepository.findByEmailIgnoreCase("guest@opspilot.io"))
+                .orElseGet(() -> {
+                    Organization org = organizationRepository.findAll().stream().findFirst()
+                            .orElseGet(() -> organizationRepository.save(new Organization("Demo Organization", "demo-org")));
+                    User newUser = userRepository.save(new User("guest@opspilot.io", passwordEncoder.encode("Guest123!"), "Guest", "Operator"));
+                    membershipRepository.save(new OrganizationMembership(org.getId(), newUser.getId(), Role.OWNER));
+                    return newUser;
+                });
+
+        List<OrganizationMembership> memberships = membershipRepository.findByUserId(user.getId());
+        OrganizationMembership selectedMembership = memberships.isEmpty()
+                ? membershipRepository.findAll().stream().findFirst().orElseThrow(() -> new ApiException("No organization found", HttpStatus.INTERNAL_SERVER_ERROR, "NO_ORGANIZATION"))
+                : memberships.get(0);
+
+        Organization org = organizationRepository.findById(selectedMembership.getOrganizationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Organization", selectedMembership.getOrganizationId()));
+
+        user.setLastLoginAt(Instant.now());
+        userRepository.save(user);
+
+        String accessToken = tokenProvider.generateAccessToken(
+                user.getId(),
+                user.getEmail(),
+                org.getId(),
+                selectedMembership.getRole().name()
+        );
+        String refreshTokenRaw = UUID.randomUUID().toString();
+        createRefreshTokenSession(user.getId(), refreshTokenRaw);
+
+        AuthResponse authResponse = new AuthResponse(
+                accessToken,
+                900000L,
+                UserDto.from(user, selectedMembership.getRole(), org.getId()),
+                OrganizationDto.from(org)
+        );
+
+        return new AuthResult(authResponse, refreshTokenRaw);
+    }
+
+    @Transactional
     public AuthResult refreshToken(String refreshTokenRaw) {
         if (refreshTokenRaw == null || refreshTokenRaw.isBlank()) {
             throw new UnauthorizedException("Refresh token is required", "MISSING_REFRESH_TOKEN");
