@@ -163,16 +163,21 @@ Open `http://localhost:5173` in your browser.
 cd backend
 .\mvnw.cmd test
 ```
-All 16 backend unit, validation, matching, and benchmark tests execute and pass:
+All **45 backend integration, unit, validation, matching, and benchmark tests** execute and pass (0 failures, 0 errors, 0 skipped):
 ```text
-[INFO] Running com.opspilot.ai.benchmark.AiExtractionBenchmarkTest
-[INFO] Extraction Benchmark Results:
-[INFO] - Total Invoices Tested: 50
-[INFO] - Overall Field Accuracy: 100.0%
-[INFO] - Latency p50: 85 ms | p95: 90 ms
-[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Running com.opspilot.ai.AiExtractionBenchmarkTest
+=======================================================
+OPSPILOT AI EXTRACTION BENCHMARK EVALUATION REPORT
+=======================================================
+Total Synthetic Invoices Evaluated: 50
+Overall Field Accuracy:             100.0% (Target: >= 90.0%)
+Latency p50:                        85 ms | p95: 88 ms
+Missing Field Rate:                 0.0%
+Invalid Output Rate:                0.0%
+=======================================================
 ...
-[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Results:
+[INFO] Tests run: 45, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
 
@@ -185,21 +190,36 @@ Executes strict TypeScript type checking (`tsc`) and Vite production bundling wi
 
 ---
 
-## 6. Project Directory Layout
+## 6. Manual Testing & Verification
+
+For comprehensive, step-by-step procedures to test every module, role boundary, and failure mode:
+👉 See the [**Manual Verification & Testing Guide**](docs/MANUAL_TESTING_GUIDE.md).
+
+Sample invoice PDFs are pre-generated and ready to upload in [`samples/invoices/`](samples/invoices/):
+1. `01_acme_industrial_standard.pdf`: Standard PO matching ($11,800) triggering high-value approval.
+2. `02_cloudscale_hosting_approval.pdf`: Cloud compute invoice ($3,540) matching PO-2026-9002.
+3. `03_apex_office_needs_review.pdf`: Mathematical discrepancy ($600 stated vs $500 line items) routing to `NEEDS_REVIEW`.
+4. `04_simulated_low_confidence.pdf`: Low AI confidence simulation testing exception workflows.
+
+---
+
+## 7. Project Directory Layout
 
 ```text
 opspilot/
 ├── backend/
 │   ├── src/main/java/com/opspilot/
+│   │   ├── admin/           # Organization settings & external ERP integration configs
 │   │   ├── ai/              # AI Provider SPI (Mock & Gemini adapters)
 │   │   ├── analytics/       # Operational AP analytics & KPIs
-│   │   ├── approval/        # Human approval task inbox & decisions
+│   │   ├── approval/        # Human approval task inbox, decisions & escalation
 │   │   ├── audit/           # Append-only immutable audit trail
 │   │   ├── common/          # Security, JWT, RFC 9457 exceptions, tenant context
-│   │   ├── document/        # PDF upload, signature validation & parser
+│   │   ├── document/        # PDF upload, signature validation & pure Java text parser
 │   │   ├── export/          # CSV, JSON, and ERP simulator export
 │   │   ├── identity/        # Users, organizations, memberships, auth
 │   │   ├── invoice/         # Invoices, line items, and lifecycle states
+│   │   ├── notification/    # In-app notifications & mock email delivery
 │   │   ├── purchaseorder/   # Purchase orders and line items
 │   │   ├── supplier/        # Supplier master registry
 │   │   ├── validation/      # Deterministic mathematical financial validation
@@ -210,12 +230,16 @@ opspilot/
 ├── frontend/
 │   ├── src/
 │   │   ├── api/             # Axios client with JWT refresh interceptor
-│   │   ├── components/      # Layout and UI components
+│   │   ├── components/      # Layout and UI components (AppLayout, NotificationBell)
 │   │   ├── context/         # AuthContext & role checker
-│   │   ├── pages/           # Dashboard, Invoices, Detail, Approvals, Workflows...
+│   │   ├── pages/           # Dashboard, Invoices, Detail, Approvals, Workflows, Settings...
 │   │   └── types/           # Complete TypeScript interface definitions
 │   └── package.json
+├── samples/
+│   ├── invoices/            # Pre-generated valid PDF invoices for manual testing
+│   └── README.md            # Sample files usage guide
 ├── docs/
+│   ├── MANUAL_TESTING_GUIDE.md # Comprehensive end-to-end manual testing walkthrough
 │   ├── ARCHITECTURE.md      # Detailed system architecture specification
 │   ├── AI_EVALUATION.md     # AI Benchmark report (50 synthetic invoices)
 │   ├── DATABASE_DESIGN.md   # Relational schema specification
@@ -228,6 +252,6 @@ opspilot/
 
 ---
 
-## 7. License
+## 8. License
 
 OpsPilot is licensed under the [MIT License](LICENSE).

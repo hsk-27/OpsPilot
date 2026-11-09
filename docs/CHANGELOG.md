@@ -1,5 +1,25 @@
 # OpsPilot — Changelog
 
+## [1.1.0] - 2026-11-09
+### Added
+- **Notification Subsystem**:
+  - In-app notification center with real-time unread badges, popover list, and one-click navigation to relevant records.
+  - Multi-channel delivery architecture supporting in-app persistent notifications and mock email delivery.
+- **Workflow Reliability & Operations**:
+  - On-demand execution retry for paused or failed workflow nodes with exponential backoff handling.
+  - Idempotent workflow execution replay.
+  - Role escalation in approval tasks (from `APPROVER` to `ADMIN` or `ADMIN` to `OWNER`) with audit notes.
+  - Automated post-approval workflow resumption directly proceeding to invoice accounting export.
+- **Organization Settings & ERP Configuration**:
+  - Configurable tenant operational policies: `approvalThresholdAmount`, `matchingToleranceAmount`, `duplicateWindowDays`, and `autoExportApproved`.
+  - Dynamic integration of organization settings into `PurchaseOrderMatchingService` and `DeterministicValidationService`.
+  - External ERP connector configuration (SAP S/4HANA, NetSuite SuiteTalk, QuickBooks) with live connection latency health checks.
+- **Sample Invoices & Testing Infrastructure**:
+  - Pre-generated valid sample PDF invoices in `samples/invoices/` covering standard PO match, high-tier approval, arithmetic mismatch, and low-confidence simulation.
+  - Comprehensive `MANUAL_TESTING_GUIDE.md` detailing step-by-step procedures to verify every role, transition, and edge case.
+  - Full end-to-end operational pipeline integration test (`EndToEndOperationalPipelineTest`) simulating complete invoice lifecycle from intake to ERP export.
+  - Total test suite expanded to **45 passing tests (0 failures, 0 errors, 0 skipped)**.
+
 ## [1.0.0] - 2026-11-03
 ### Added
 - **Full Backend Modular Monolith**:
@@ -24,9 +44,6 @@
   - Approvals Inbox with decision dialogs and contextual invoice metadata.
   - Supplier directory and Purchase Orders registry with line items accordion and creation dialogs.
   - Analytics and Audit Trail compliance pages.
-- **Automated Verification & Tests**:
-  - 24 comprehensive tests covering AI benchmark (100% accuracy over 50 invoices), approval transitions, export idempotency, arithmetic checks, and PO matching.
-  - Zero TypeScript compile or bundling errors on Vite production build.
 - **DevOps & Infrastructure**:
   - Docker Compose orchestrating PostgreSQL 16, Spring Boot backend, and React Nginx frontend.
   - GitHub Actions CI workflow for JDK 21 backend and Node 20 frontend builds.
