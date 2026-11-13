@@ -148,4 +148,57 @@ class DeterministicValidationServiceTest {
         assertEquals(ValidationStatus.FAILED, result.getOverallStatus());
         assertTrue(result.getReviewReasons().stream().anyMatch(r -> r.contains("Duplicate invoice detected")));
     }
+
+    @Test
+    @DisplayName("Due date preceding invoice issue date fails validation")
+    void testDueDatePrecedingInvoiceDateFails() {
+        UUID orgId = UUID.randomUUID();
+        Invoice invoice = new Invoice(orgId, "INV-2001", null);
+        invoice.setInvoiceDate(LocalDate.now());
+        invoice.setDueDate(LocalDate.now().minusDays(10));
+        invoice.setCurrency("USD");
+        invoice.setSubtotal(new BigDecimal("500.00"));
+        invoice.setTotalAmount(new BigDecimal("500.00"));
+
+        ValidationResult result = validationService.validateInvoice(invoice);
+
+        assertEquals(ValidationStatus.FAILED, result.getOverallStatus());
+        assertTrue(result.getReviewReasons().stream().anyMatch(r -> r.contains("cannot precede invoice date")));
+    }
+
+    @Test
+    @DisplayName("Invoice date beyond 30 days in the future is rejected")
+    void testExtremeFutureInvoiceDateFails() {
+        UUID orgId = UUID.randomUUID();
+        Invoice invoice = new Invoice(orgId, "INV-2002", null);
+        invoice.setInvoiceDate(LocalDate.now().plusDays(45));
+        invoice.setCurrency("USD");
+        invoice.setSubtotal(new BigDecimal("300.00"));
+        invoice.setTotalAmount(new BigDecimal("300.00"));
+
+        ValidationResult result = validationService.validateInvoice(invoice);
+
+        assertEquals(ValidationStatus.FAILED, result.getOverallStatus());
+        assertTrue(result.getReviewReasons().stream().anyMatch(r -> r.contains("exceeds permissible 30-day future")));
+    }
+
+    @Test
+    @DisplayName("Line item arithmetic discrepancy produces warning")
+    void testLineItemArithmeticDiscrepancyProducesWarning() {
+        UUID orgId = UUID.randomUUID();
+        Invoice invoice = new Invoice(orgId, "INV-2003", null);
+        invoice.setInvoiceDate(LocalDate.now());
+        invoice.setCurrency("USD");
+        invoice.setSubtotal(new BigDecimal("100.00"));
+        invoice.setTotalAmount(new BigDecimal("100.00"));
+
+        // Quantity 2 * UnitPrice 40 = 80, but stated line total is 100
+        invoice.addLine(new InvoiceLine("Hardware Component", new BigDecimal("2"), new BigDecimal("40.00"), BigDecimal.ZERO, new BigDecimal("100.00")));
+
+        ValidationResult result = validationService.validateInvoice(invoice);
+
+        assertEquals(ValidationStatus.WARNING, result.getOverallStatus());
+        assertTrue(result.getWarningsCount() > 0);
+        assertTrue(result.getReviewReasons().stream().anyMatch(r -> r.contains("arithmetic variance")));
+    }
 }

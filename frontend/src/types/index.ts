@@ -110,6 +110,21 @@ export interface ValidationResult {
   reviewReasons: string[];
 }
 
+export interface LineMatchResult {
+  invoiceLineDescription?: string;
+  poLineDescription?: string;
+  invoiceQuantity?: number;
+  poQuantity?: number;
+  invoiceUnitPrice?: number;
+  poUnitPrice?: number;
+  invoiceLineTotal?: number;
+  poLineTotal?: number;
+  varianceAmount?: number;
+  matched: boolean;
+  matchType?: string;
+  discrepancyNote?: string;
+}
+
 export interface PoMatchResult {
   outcome: 'MATCHED' | 'PARTIALLY_MATCHED' | 'MISMATCHED' | 'NO_PURCHASE_ORDER' | 'NEEDS_REVIEW';
   purchaseOrderNumber?: string;
@@ -119,6 +134,9 @@ export interface PoMatchResult {
   poTotal?: number;
   amountDifference?: number;
   message?: string;
+  lineMatches?: LineMatchResult[];
+  matchedLinesCount?: number;
+  totalLinesCount?: number;
 }
 
 export interface Invoice {

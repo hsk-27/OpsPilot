@@ -50,11 +50,39 @@ public class DeterministicValidationService {
             result.addEvaluation(RuleEvaluation.pass("RULE_INVOICE_NUMBER_PRESENT", "Invoice number is present: " + invoice.getInvoiceNumber()));
         }
 
-        // 1.2 Invoice Date present
+        // 1.2 Invoice Date present & temporal sanity checks
         if (invoice.getInvoiceDate() == null) {
             result.addEvaluation(RuleEvaluation.fail("RULE_INVOICE_DATE_PRESENT", "Invoice date is missing or invalid", "invoiceDate"));
         } else {
             result.addEvaluation(RuleEvaluation.pass("RULE_INVOICE_DATE_PRESENT", "Invoice date is valid: " + invoice.getInvoiceDate()));
+
+            if (invoice.getInvoiceDate().isAfter(LocalDate.now().plusDays(30))) {
+                result.addEvaluation(RuleEvaluation.fail(
+                        "RULE_INVOICE_DATE_NOT_EXTREME_FUTURE",
+                        String.format("Invoice date (%s) exceeds permissible 30-day future posting threshold", invoice.getInvoiceDate()),
+                        "invoiceDate"
+                ));
+            } else {
+                result.addEvaluation(RuleEvaluation.pass(
+                        "RULE_INVOICE_DATE_NOT_EXTREME_FUTURE",
+                        "Invoice date is within acceptable operational range"
+                ));
+            }
+
+            if (invoice.getDueDate() != null) {
+                if (invoice.getDueDate().isBefore(invoice.getInvoiceDate())) {
+                    result.addEvaluation(RuleEvaluation.fail(
+                            "RULE_DUE_DATE_AFTER_INVOICE_DATE",
+                            String.format("Due date (%s) cannot precede invoice date (%s)", invoice.getDueDate(), invoice.getInvoiceDate()),
+                            "dueDate"
+                    ));
+                } else {
+                    result.addEvaluation(RuleEvaluation.pass(
+                            "RULE_DUE_DATE_AFTER_INVOICE_DATE",
+                            "Due date is valid and on or after invoice date"
+                    ));
+                }
+            }
         }
 
         // 1.3 Currency validity (ISO 4217)
@@ -116,14 +144,32 @@ public class DeterministicValidationService {
             result.addEvaluation(RuleEvaluation.pass("RULE_TOTAL_MATH_CONSISTENCY", "Subtotal plus tax matches total amount"));
         }
 
-        // 2.3 Line items sum check
+        // 2.3 Line items sum check & individual line arithmetic check
         if (invoice.getLines() != null && !invoice.getLines().isEmpty()) {
             BigDecimal linesSum = BigDecimal.ZERO;
+            boolean allLinesMathCorrect = true;
             for (InvoiceLine line : invoice.getLines()) {
                 if (line.getLineTotal() != null) {
                     linesSum = linesSum.add(line.getLineTotal());
                 }
+                if (line.getQuantity() != null && line.getUnitPrice() != null && line.getLineTotal() != null) {
+                    BigDecimal expectedLineTotal = line.getQuantity().multiply(line.getUnitPrice());
+                    if (expectedLineTotal.subtract(line.getLineTotal()).abs().compareTo(ROUNDING_TOLERANCE) > 0) {
+                        allLinesMathCorrect = false;
+                        result.addEvaluation(RuleEvaluation.warning(
+                                "RULE_LINE_ITEM_ARITHMETIC",
+                                String.format("Line '%s' arithmetic variance: qty (%s) * unit price (%s) != stated total (%s)",
+                                        line.getDescription(), line.getQuantity(), line.getUnitPrice(), line.getLineTotal()),
+                                "lines"
+                        ));
+                        break;
+                    }
+                }
             }
+            if (allLinesMathCorrect) {
+                result.addEvaluation(RuleEvaluation.pass("RULE_LINE_ITEM_ARITHMETIC", "Individual line item calculations are mathematically consistent"));
+            }
+
             BigDecimal lineDiff = linesSum.subtract(subtotal).abs();
             if (lineDiff.compareTo(ROUNDING_TOLERANCE) > 0) {
                 result.addEvaluation(RuleEvaluation.warning(

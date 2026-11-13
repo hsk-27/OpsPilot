@@ -1,6 +1,8 @@
 package com.opspilot.validation.dto;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 public class PoMatchResult {
     public enum Outcome {
@@ -19,6 +21,9 @@ public class PoMatchResult {
     private BigDecimal poTotal;
     private BigDecimal amountDifference;
     private String message;
+    private List<LineMatchResult> lineMatches = new ArrayList<>();
+    private int matchedLinesCount = 0;
+    private int totalLinesCount = 0;
 
     public PoMatchResult() {}
 
@@ -92,4 +97,29 @@ public class PoMatchResult {
     public void setMessage(String message) {
         this.message = message;
     }
+
+    public List<LineMatchResult> getLineMatches() {
+        return lineMatches;
+    }
+
+    public void setLineMatches(List<LineMatchResult> lineMatches) {
+        this.lineMatches = lineMatches;
+    }
+
+    public int getMatchedLinesCount() {
+        return matchedLinesCount;
+    }
+
+    public void setMatchedLinesCount(int matchedLinesCount) {
+        this.matchedLinesCount = matchedLinesCount;
+    }
+
+    public int getTotalLinesCount() {
+        return totalLinesCount;
+    }
+
+    public void setTotalLinesCount(int totalLinesCount) {
+        this.totalLinesCount = totalLinesCount;
+    }
 }
+

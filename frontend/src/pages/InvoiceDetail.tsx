@@ -555,14 +555,23 @@ export const InvoiceDetailPage: React.FC = () => {
           {/* PO Match Result Card */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700">
-                2-Way Purchase Order Match
-              </h3>
+              <div>
+                <h3 className="font-bold text-xs uppercase tracking-wider text-slate-700">
+                  2-Way Purchase Order Match
+                </h3>
+                {invoice.poMatchResult?.matchedLinesCount !== undefined && invoice.poMatchResult.totalLinesCount !== undefined && invoice.poMatchResult.totalLinesCount > 0 && (
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {invoice.poMatchResult.matchedLinesCount} of {invoice.poMatchResult.totalLinesCount} lines verified
+                  </p>
+                )}
+              </div>
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
                   invoice.poMatchResult?.outcome === 'MATCHED'
                     ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                    : invoice.poMatchResult?.outcome === 'MISMATCHED'
+                    : invoice.poMatchResult?.outcome === 'PARTIALLY_MATCHED'
+                    ? 'bg-amber-100 text-amber-800 border-amber-200'
+                    : invoice.poMatchResult?.outcome === 'MISMATCHED' || invoice.poMatchResult?.outcome === 'NEEDS_REVIEW'
                     ? 'bg-rose-100 text-rose-800 border-rose-200'
                     : 'bg-slate-100 text-slate-700 border-slate-200'
                 }`}
@@ -575,25 +584,111 @@ export const InvoiceDetailPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Purchase Order:</span>
                 <span className="font-mono font-semibold text-slate-800">
-                  {invoice.purchaseOrderNumber || 'None Specified'}
+                  {invoice.poMatchResult?.purchaseOrderNumber || invoice.purchaseOrderNumber || 'None Specified'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Supplier Verified:</span>
-                <span className="font-semibold text-emerald-700 flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5" /> Verified
-                </span>
+                {invoice.poMatchResult?.supplierMatches !== false ? (
+                  <span className="font-semibold text-emerald-700 flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5" /> Verified
+                  </span>
+                ) : (
+                  <span className="font-semibold text-rose-600 flex items-center gap-1">
+                    <X className="w-3.5 h-3.5" /> Mismatch
+                  </span>
+                )}
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Currency Match:</span>
-                <span className="font-semibold text-emerald-700 flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5" /> {invoice.currency}
-                </span>
+                {invoice.poMatchResult?.currencyMatches !== false ? (
+                  <span className="font-semibold text-emerald-700 flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5" /> {invoice.currency}
+                  </span>
+                ) : (
+                  <span className="font-semibold text-rose-600 flex items-center gap-1">
+                    <X className="w-3.5 h-3.5" /> Mismatch
+                  </span>
+                )}
               </div>
+              {invoice.poMatchResult?.poTotal !== undefined && (
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500">PO Authorized Total:</span>
+                  <span className="font-mono font-semibold text-slate-800">
+                    {invoice.currency} {Number(invoice.poMatchResult.poTotal).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                 <span className="text-slate-500">Variance / Tolerance:</span>
-                <span className="font-bold text-slate-900">$0.00 (Exact Match)</span>
+                <span className={`font-bold ${
+                  (invoice.poMatchResult?.amountDifference ?? 0) > 0 ? 'text-amber-700' : 'text-slate-900'
+                }`}>
+                  {invoice.poMatchResult?.amountDifference !== undefined
+                    ? `${Number(invoice.poMatchResult.amountDifference) > 0 ? '+' : ''}${invoice.currency} ${Number(invoice.poMatchResult.amountDifference).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                    : '$0.00 (Exact Match)'}
+                </span>
               </div>
+
+              {invoice.poMatchResult?.message && (
+                <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-[11px] text-slate-600 leading-relaxed">
+                  {invoice.poMatchResult.message}
+                </div>
+              )}
+
+              {/* Line-level PO matching reconciliation breakdown */}
+              {invoice.poMatchResult?.lineMatches && invoice.poMatchResult.lineMatches.length > 0 && (
+                <div className="pt-3 border-t border-slate-100 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-700 text-[11px] uppercase tracking-wide">
+                      Line Reconciliation
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      {invoice.poMatchResult.lineMatches.length} items
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                    {invoice.poMatchResult.lineMatches.map((lm, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-2 rounded border text-[11px] space-y-1 ${
+                          lm.matched
+                            ? 'bg-emerald-50/50 border-emerald-200/60'
+                            : 'bg-rose-50/60 border-rose-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between font-medium">
+                          <span className="text-slate-800 truncate max-w-[170px]" title={lm.invoiceLineDescription || lm.poLineDescription}>
+                            {lm.invoiceLineDescription || lm.poLineDescription}
+                          </span>
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                              lm.matched
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                : 'bg-rose-100 text-rose-800 border-rose-300'
+                            }`}
+                          >
+                            {lm.matchType || (lm.matched ? 'MATCHED' : 'VARIANCE')}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-slate-500 text-[10px]">
+                          <span>
+                            Qty: {lm.invoiceQuantity ?? 1} (PO: {lm.poQuantity ?? 1})
+                          </span>
+                          <span>
+                            Var: {lm.varianceAmount !== undefined ? `${Number(lm.varianceAmount) > 0 ? '+' : ''}${invoice.currency} ${Number(lm.varianceAmount).toFixed(2)}` : '$0.00'}
+                          </span>
+                        </div>
+                        {lm.discrepancyNote && (
+                          <p className="text-[10px] text-slate-600 italic">
+                            {lm.discrepancyNote}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
