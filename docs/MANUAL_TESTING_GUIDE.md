@@ -1,44 +1,55 @@
-# OpsPilot — Manual Verification & Testing Guide
+# OpsPilot — Operational Verification & Testing Guide
 
-This guide provides step-by-step procedures to manually test and verify every module, role boundary, exception case, and workflow transition in OpsPilot.
+This guide provides step-by-step procedures to verify every module, role boundary, exception case, and workflow transition in OpsPilot.
 
 ---
 
 ## 1. Environment Startup
 
-### 1.1 Start the Backend
-Open a terminal in the project directory:
+### 1.1 Automated Launch
+From the root project directory:
 ```powershell
-cd C:\Users\Dell\.gemini\antigravity\scratch\opspilot\backend
-.\mvnw.cmd spring-boot:run
+.\start.ps1
 ```
+*(Or double-click `start.bat` in Windows File Explorer)*
+
 *Expected Output:*
 - Spring Boot starts on port `8080`.
 - Flyway executes schema initialization (21 tables).
 - `DataSeeder` logs: `Operational AP data seeded successfully: 4 users, 3 suppliers, 2 POs, 3 invoices, 1 pending approval task.`
-
-### 1.2 Start the Frontend
-In a second terminal:
-```powershell
-cd C:\Users\Dell\.gemini\antigravity\scratch\opspilot\frontend
-npm.cmd run dev
-```
-*Expected Output:*
 - Vite starts the dev server at `http://localhost:5173`.
-- Open `http://localhost:5173` in your browser (Chrome / Edge / Firefox).
+- Browser automatically opens `http://localhost:5173`.
+
+### 1.2 Manual Terminal Startup
+If preferred, start the services in two separate terminals:
+
+**Terminal 1 (Backend):**
+```bash
+cd backend
+./mvnw spring-boot:run
+```
+*(On Windows: `.\mvnw.cmd spring-boot:run`)*
+
+**Terminal 2 (Frontend):**
+```bash
+cd frontend
+npm run dev
+```
 
 ---
 
-## 2. Pre-Seeded Test Accounts
+## 2. Pre-Seeded Accounts & Guest Access
 
-The login screen features **1-click quick selector pills** to instantly populate credentials for any role:
+For testing, the login screen provides:
+1. **Instant Guest Access (Auditor / Admin)**: Click the primary guest login button to enter immediately without entering credentials.
+2. **Pre-Seeded Operational Roles**:
 
 | Persona | Email | Password | Role | Primary Operational Capabilities |
 |---|---|---|---|---|
-| **Sarah Connor** | `admin@opspilot.io` | `Password123!` | `OWNER` / `ADMIN` | Full organization settings, workflow builder/publishing, user management |
-| **Michael Scott** | `approver@opspilot.io` | `Password123!` | `APPROVER` | Reviews and authorizes pending invoice approval tasks, can escalate |
-| **Pam Beesly** | `operator@opspilot.io` | `Password123!` | `OPERATOR` | Uploads invoices, reviews AI extractions, edits discrepancies |
-| **Jim Halpert** | `viewer@opspilot.io` | `Password123!` | `VIEWER` | Read-only inspection of invoices, analytics, and audit logs |
+| **Eleanor Vance** | `admin@opspilot.io` | `Password123!` | `OWNER` / `ADMIN` | Full organization settings, workflow builder/publishing, user management |
+| **Marcus Sterling** | `approver@opspilot.io` | `Password123!` | `APPROVER` | Reviews and authorizes pending invoice approval tasks (> $5,000), can escalate |
+| **David Chen** | `operator@opspilot.io` | `Password123!` | `OPERATOR` | Uploads invoices, reviews AI extractions, edits discrepancies |
+| **Sophia Rodriguez** | `viewer@opspilot.io` | `Password123!` | `VIEWER` | Read-only inspection of invoices, analytics, and audit logs |
 
 ---
 

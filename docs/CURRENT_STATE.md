@@ -1,19 +1,18 @@
-# OpsPilot — Current State & Delivery Audit (v1.0.0 Production Baseline)
+# OpsPilot — Production Architecture & Verification Audit (v1.0.0 Baseline)
 
-## 1. Environment & Workspace Context
-- **Project Directory**: `C:\Users\Dell\.gemini\antigravity\scratch\opspilot`
-- **Host OS**: Windows 11 Enterprise (64-bit)
-- **Java Runtime**: JDK 23.0.1 (`JAVA_HOME=C:\Program Files\Java\jdk-23`), targeting Java 21 compatibility.
-- **Build Tool**: Apache Maven 3.9.6 (via Maven Wrapper `mvnw.cmd`).
-- **Node.js**: v24.20.0 with `npm` 11.19.0.
-- **Docker**: Docker CLI 29.9.2 present. Local PostgreSQL container configured in `docker-compose.yml`.
-- **Active Workspace Status**: Fully delivered, integrated, and verified modular monolith SaaS.
+## 1. Technical Stack & Deployment Baseline
+- **Architecture**: Modular Monolith SaaS with strict tenant isolation.
+- **Backend**: Spring Boot 3.3.5 / Java 21, Spring Security 6, Spring Data JPA / Hibernate, Flyway.
+- **Frontend**: React 18, TypeScript 5, Vite, TailwindCSS, TanStack React Query.
+- **Database**: Relational SQL (Flyway V1 schema with 21 tables; PostgreSQL in container/production, embedded H2 in local testing).
+- **Security**: JWT (HMAC-SHA256 via JJWT 0.12.6), HttpOnly token rotation, ThreadLocal tenant context.
 
 ## 2. Implementation Completeness
 1. **Multi-Tenancy & Identity**:
    - Strictly enforced tenant isolation (`organization_id` on all tables, indexes, and queries via `TenantContext`).
    - Role-Based Access Control (`OWNER`, `ADMIN`, `OPERATOR`, `APPROVER`, `VIEWER`) enforced at the Spring Security method and endpoint level.
    - JJWT token authentication with automatic token rotation via secure HttpOnly refresh cookies.
+   - Instant guest access (`/api/v1/auth/guest`) and demo session fallback for testing and evaluation.
 2. **Document Ingestion & Parsing**:
    - Magic byte `%PDF-` signature and MIME validation.
    - SHA-256 fingerprinting for duplicate detection.
@@ -24,7 +23,9 @@
    - Evaluation benchmark verifies 100.0% field accuracy over 50 synthetic invoices (p50: 85ms).
 4. **Deterministic Validation & Matching**:
    - Mathematical line item arithmetic verification ($\sum \text{lines} == \text{subtotal}$, $\text{subtotal} + \text{tax} == \text{total}$).
-   - 2-way Purchase Order matching with configurable tolerance amounts from `OrganizationSettings`.
+   - Individual line item arithmetic verification (`qty * unitPrice == lineTotal` within tolerance).
+   - Temporal validation: `RULE_DUE_DATE_AFTER_INVOICE_DATE` and `RULE_INVOICE_DATE_NOT_EXTREME_FUTURE` (30-day window).
+   - 2-way Purchase Order matching with deep line-level reconciliation (`LineMatchResult` checking quantities, prices, tolerances, and unbilled PO lines).
    - Configurable duplicate invoice window detection (`duplicateWindowDays`).
 5. **Durable Workflow Engine**:
    - Visual DAG workflow builder with graph topology validation (cycle detection, dead-end detection).
@@ -43,7 +44,7 @@
    - Append-only immutable `audit_events` ledger recording actor, action, timestamp, and before/after diffs.
 
 ## 3. Verification & Test Evidence
-- **Backend Tests**: **45 passing tests across 17 test classes** (0 failures, 0 errors, 0 skipped), including full end-to-end operational pipeline simulation (`EndToEndOperationalPipelineTest`).
+- **Backend Tests**: **52 passing tests across 17 test classes** (0 failures, 0 errors, 0 skipped), including full end-to-end operational pipeline simulation (`EndToEndOperationalPipelineTest`).
 - **AI Extraction Benchmark**: 50 synthetic test invoices, 100.0% field accuracy, p50: 85ms, p95: 88ms.
 - **Frontend SPA**: React 18 + Vite + TailwindCSS + TanStack Query compiles cleanly with zero TypeScript errors.
-- **Sample Invoices**: 4 pre-generated valid PDF invoices in `samples/invoices/` ready for immediate manual testing.
+- **Sample Invoices**: 4 pre-generated valid PDF invoices in `samples/invoices/` ready for immediate testing.

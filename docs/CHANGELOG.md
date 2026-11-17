@@ -1,5 +1,20 @@
 # OpsPilot — Changelog
 
+## [1.2.0] - 2026-11-14
+### Added
+- **Deep 2-Way Line-Level Purchase Order Reconciliation**:
+  - Implemented itemized line reconciliation via `LineMatchResult` DTO.
+  - Line-by-line comparison of billed quantities, authorized PO limits, unit rates, and variance amounts.
+  - Support for partial delivery tracking and unbilled PO line item balances.
+- **Deterministic Validation Rule Extensions**:
+  - `RULE_DUE_DATE_AFTER_INVOICE_DATE`: Enforces that due dates cannot precede invoice issue dates.
+  - `RULE_INVOICE_DATE_NOT_EXTREME_FUTURE`: Rejects invoices with issue dates beyond a 30-day future posting window.
+  - `RULE_LINE_ITEM_ARITHMETIC`: Verifies that individual line item totals match quantity multiplied by unit price within tolerance.
+- **Enterprise Institutional Design System**:
+  - Refined FinTech aesthetic inspired by institutional financial platforms (Obsidian and Emerald theme).
+  - Streamlined data tables, status badges, and split-screen document reconciliation.
+  - Automated test suite expanded to **52 passing tests across 17 test suites (0 failures, 0 errors, 0 skipped)**.
+
 ## [1.1.0] - 2026-11-09
 ### Added
 - **Notification Subsystem**:

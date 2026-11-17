@@ -104,36 +104,38 @@ OpsPilot is engineered as a **modular monolith** with multi-tenant data isolatio
 
 ---
 
-## 3. Pre-Seeded Demo Accounts
+## 3. Pre-Seeded Evaluation Accounts & Instant Guest Access
 
 The application automatically seeds a realistic tenant organization (**Global Logistics Enterprise**) with distinct role-based accounts:
 
-| User | Email | Password | Role | Permissions |
+| User | Email | Password | Role | Operational Responsibilities |
 |---|---|---|---|---|
-| **Sarah Connor** | `admin@opspilot.io` | `Password123!` | `OWNER` / `ADMIN` | Full tenant admin, workflow publishing, user management |
-| **Michael Scott** | `approver@opspilot.io` | `Password123!` | `APPROVER` | Reviews and authorizes pending invoice approval tasks |
-| **Pam Beesly** | `operator@opspilot.io` | `Password123!` | `OPERATOR` | Ingests invoices, inspects extractions, manages line items |
-| **Jim Halpert** | `viewer@opspilot.io` | `Password123!` | `VIEWER` | Read-only inspection of invoices, analytics, and audit trail |
+| **Eleanor Vance** | `admin@opspilot.io` | `Password123!` | `OWNER` / `ADMIN` | Full tenant admin, workflow publishing, ERP integrations, policy controls |
+| **Marcus Sterling** | `approver@opspilot.io` | `Password123!` | `APPROVER` | Reviews and authorizes pending invoice approval tasks (> $5,000) |
+| **David Chen** | `operator@opspilot.io` | `Password123!` | `OPERATOR` | Ingests invoices, inspects extractions, manages line items & discrepancies |
+| **Sophia Rodriguez** | `viewer@opspilot.io` | `Password123!` | `VIEWER` | Read-only inspection of invoices, analytics, and audit trail |
 
-> **Tip:** The login screen includes 1-click demo account selector pills for rapid role switching during evaluation.
+> **Instant Guest Access:** For frictionless evaluation, the login page features a 1-click **"Instant Guest Access (Auditor / Admin)"** button that bypasses manual credential typing and grants immediate access to the platform.
 
 ---
 
 ## 4. Running the Application
 
-### Option A: Docker Compose (Recommended)
+### Option A: 1-Click Automated Startup (Recommended for Evaluation)
 
-Run the full stack (PostgreSQL 16, Spring Boot backend, and React Nginx frontend) with one command:
+From the project root directory (`OpsPilot/`), execute the launch script:
 
-```bash
-docker-compose up --build
+```powershell
+.\start.ps1
 ```
+*(Or double-click `start.bat` in Windows File Explorer)*
 
-- Frontend: `http://localhost`
-- Backend API & Actuator: `http://localhost:8080`
-- Swagger / OpenAPI UI: `http://localhost:8080/swagger-ui.html`
+This automatically:
+1. Boots the Spring Boot backend on `http://localhost:8080`.
+2. Starts the Vite React frontend on `http://localhost:5173`.
+3. Opens `http://localhost:5173` directly in your default browser.
 
-### Option B: Local Development
+### Option B: Manual Local Startup
 
 #### Prerequisites
 - **JDK 21** or higher
@@ -145,7 +147,7 @@ docker-compose up --build
 cd backend
 .\mvnw.cmd spring-boot:run
 ```
-*Note: By default, the application runs on port `8080` using an embedded in-memory H2 database with the realistic data seeder enabled.*
+*Runs on port `8080` using an embedded in-memory H2 database with the pre-seeded enterprise dataset.*
 
 #### 2. Start the Frontend
 ```bash
@@ -153,6 +155,14 @@ cd frontend
 npm.cmd run dev
 ```
 Open `http://localhost:5173` in your browser.
+
+### Option C: Production Docker Compose
+```bash
+docker-compose up --build
+```
+- Frontend: `http://localhost`
+- Backend API & Actuator: `http://localhost:8080`
+- Swagger / OpenAPI UI: `http://localhost:8080/swagger-ui.html`
 
 ---
 
@@ -163,7 +173,7 @@ Open `http://localhost:5173` in your browser.
 cd backend
 .\mvnw.cmd test
 ```
-All **45 backend integration, unit, validation, matching, and benchmark tests** execute and pass (0 failures, 0 errors, 0 skipped):
+All **52 backend integration, unit, validation, matching, and benchmark tests** execute and pass (0 failures, 0 errors, 0 skipped):
 ```text
 [INFO] Running com.opspilot.ai.AiExtractionBenchmarkTest
 =======================================================
@@ -177,7 +187,7 @@ Invalid Output Rate:                0.0%
 =======================================================
 ...
 [INFO] Results:
-[INFO] Tests run: 45, Failures: 0, Errors: 0, Skipped: 0
+[INFO] Tests run: 52, Failures: 0, Errors: 0, Skipped: 0
 [INFO] BUILD SUCCESS
 ```
 
@@ -186,67 +196,73 @@ Invalid Output Rate:                0.0%
 cd frontend
 npm.cmd run build
 ```
-Executes strict TypeScript type checking (`tsc`) and Vite production bundling with zero errors.
+Executes strict TypeScript type checking (`tsc`) and Vite production bundling with **zero errors**.
 
 ---
 
-## 6. Manual Testing & Verification
+## 6. Operational Verification & Testing
 
-For comprehensive, step-by-step procedures to test every module, role boundary, and failure mode:
-👉 See the [**Manual Verification & Testing Guide**](docs/MANUAL_TESTING_GUIDE.md).
+For complete, module-by-module testing procedures, role authorization boundaries, and failure mode verifications:
+👉 See the [**Operational Verification & Testing Guide**](docs/MANUAL_TESTING_GUIDE.md).
 
-Sample invoice PDFs are pre-generated and ready to upload in [`samples/invoices/`](samples/invoices/):
-1. `01_acme_industrial_standard.pdf`: Standard PO matching ($11,800) triggering high-value approval.
-2. `02_cloudscale_hosting_approval.pdf`: Cloud compute invoice ($3,540) matching PO-2026-9002.
-3. `03_apex_office_needs_review.pdf`: Mathematical discrepancy ($600 stated vs $500 line items) routing to `NEEDS_REVIEW`.
-4. `04_simulated_low_confidence.pdf`: Low AI confidence simulation testing exception workflows.
+Sample invoice PDFs representing standard, high-value, exception, and edge-case operational scenarios are available in [`samples/invoices/`](samples/invoices/):
+1. `01_acme_industrial_standard.pdf`: Standard PO matching ($11,800.00) triggering high-value threshold approval.
+2. `02_cloudscale_hosting_approval.pdf`: Cloud infrastructure invoice ($3,540.00) matching authorized purchase order terms.
+3. `03_apex_office_needs_review.pdf`: Mathematical discrepancy ($600.00 stated total vs $500.00 line total) routing to review.
+4. `04_simulated_low_confidence.pdf`: Low OCR/AI confidence simulation validating manual operator intervention flow.
 
 ---
 
 ## 7. Project Directory Layout
 
 ```text
-opspilot/
+OpsPilot/
 ├── backend/
 │   ├── src/main/java/com/opspilot/
-│   │   ├── admin/           # Organization settings & external ERP integration configs
-│   │   ├── ai/              # AI Provider SPI (Mock & Gemini adapters)
-│   │   ├── analytics/       # Operational AP analytics & KPIs
-│   │   ├── approval/        # Human approval task inbox, decisions & escalation
-│   │   ├── audit/           # Append-only immutable audit trail
-│   │   ├── common/          # Security, JWT, RFC 9457 exceptions, tenant context
-│   │   ├── document/        # PDF upload, signature validation & pure Java text parser
-│   │   ├── export/          # CSV, JSON, and ERP simulator export
-│   │   ├── identity/        # Users, organizations, memberships, auth
-│   │   ├── invoice/         # Invoices, line items, and lifecycle states
+│   │   ├── admin/           # Tenant organization settings & external ERP integration configs
+│   │   ├── ai/              # AI Provider SPI (Deterministic Mock & Google Gemini adapters)
+│   │   ├── analytics/       # Operational AP throughput, latency & financial KPIs
+│   │   ├── approval/        # Role-based human approval inbox, escalation & decisions
+│   │   ├── audit/           # Tamper-evident, append-only immutable audit trail
+│   │   ├── common/          # Security filters, JWT rotation, RFC 9457 exceptions, TenantContext
+│   │   ├── document/        # PDF upload, MIME/signature validation & pure Java text parser
+│   │   ├── export/          # Accounting export adapters (CSV, structured JSON, ERP simulator)
+│   │   ├── identity/        # User accounts, memberships, authentication & guest access
+│   │   ├── invoice/         # Invoices, itemized lines, and lifecycle state transitions
 │   │   ├── notification/    # In-app notifications & mock email delivery
-│   │   ├── purchaseorder/   # Purchase orders and line items
-│   │   ├── supplier/        # Supplier master registry
-│   │   ├── validation/      # Deterministic mathematical financial validation
-│   │   └── workflow/        # Durable workflow engine, worker & executors
+│   │   ├── purchaseorder/   # Purchase orders, lines & 2-way line reconciliation
+│   │   ├── supplier/        # Supplier master registry & tax identifier verification
+│   │   ├── validation/      # Deterministic mathematical, temporal & line arithmetic rules
+│   │   └── workflow/        # Durable DAG workflow engine, scheduler & node executors
 │   └── src/main/resources/
-│       ├── application.yml  # Multi-profile configurations (H2 / PostgreSQL)
-│       └── db/migration/    # Flyway V1__init_schema.sql (21 tables)
+│       ├── application.yml  # Multi-profile configuration (H2 local / PostgreSQL prod)
+│       └── db/migration/    # Flyway schema migrations (21 relational tables)
 ├── frontend/
 │   ├── src/
-│   │   ├── api/             # Axios client with JWT refresh interceptor
-│   │   ├── components/      # Layout and UI components (AppLayout, NotificationBell)
-│   │   ├── context/         # AuthContext & role checker
-│   │   ├── pages/           # Dashboard, Invoices, Detail, Approvals, Workflows, Settings...
-│   │   └── types/           # Complete TypeScript interface definitions
+│   │   ├── api/             # Axios API client with automatic JWT refresh interceptor
+│   │   ├── components/      # UI components, layout scaffolding & notification bell
+│   │   ├── context/         # AuthContext & role-based permission gatekeeper
+│   │   ├── pages/           # Dashboard, Invoices, Detail, Approvals, Workflows, Settings
+│   │   └── types/           # Strict TypeScript interface and enum contracts
 │   └── package.json
 ├── samples/
-│   ├── invoices/            # Pre-generated valid PDF invoices for manual testing
-│   └── README.md            # Sample files usage guide
+│   ├── invoices/            # Pre-generated valid PDF invoices for operational testing
+│   └── README.md            # Sample test scenarios reference guide
 ├── docs/
-│   ├── MANUAL_TESTING_GUIDE.md # Comprehensive end-to-end manual testing walkthrough
 │   ├── ARCHITECTURE.md      # Detailed system architecture specification
-│   ├── AI_EVALUATION.md     # AI Benchmark report (50 synthetic invoices)
-│   ├── DATABASE_DESIGN.md   # Relational schema specification
-│   └── diagrams/            # Mermaid state machines and workflows
-├── docker-compose.yml       # Production container orchestration
-├── Dockerfile.backend       # Multi-stage JDK 21 build
-├── Dockerfile.frontend      # Multi-stage Vite / Nginx alpine build
+│   ├── API_DESIGN.md        # RESTful API design & OpenAPI schemas
+│   ├── DATABASE_DESIGN.md   # Relational schema specification & entity diagrams
+│   ├── CURRENT_STATE.md     # Production architecture & delivery audit
+│   ├── AI_EVALUATION.md     # AI Benchmark evaluation report (50 synthetic invoices)
+│   ├── MANUAL_TESTING_GUIDE.md # Comprehensive end-to-end operational testing guide
+│   ├── SECURITY_MODEL.md    # Multi-tenant isolation & RBAC security model
+│   ├── TEST_STRATEGY.md     # Testing strategy & coverage standards
+│   └── diagrams/            # Mermaid architecture, state machine & workflow diagrams
+├── docker-compose.yml       # Production multi-container orchestration
+├── Dockerfile.backend       # Multi-stage JDK 21 container build
+├── Dockerfile.frontend      # Multi-stage Vite / Nginx container build
+├── start.bat                # 1-click Windows startup script
+├── start.ps1                # 1-click PowerShell startup script
 └── README.md
 ```
 
